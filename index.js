@@ -1,0 +1,136 @@
+require('dotenv').config();
+const createClient = require('./seiClient');
+const fs = require('fs');
+const csv = require('csv-parser');
+
+const caminhoCSV = './teste.csv';
+
+async function lerCsv(caminho) {
+  return new Promise((resolve, reject) => {
+    const resultados = [];
+    fs.createReadStream(caminho)
+      .pipe(csv({ separator: ';' }))
+      .on('data', (row) => resultados.push(row))
+      .on('end', () => resolve(resultados))
+      .on('error', reject);
+  });
+}
+
+async function processar() {
+  try {
+    const linhas = await lerCsv(caminhoCSV);
+
+    // Agrupar linhas por especificação (Nome)
+    const processosMap = new Map();
+
+    for (const linha of linhas) {
+      const especificacao = linha.Nome || linha.nome;
+      const nomeDocumento = linha.Arquivo || linha.arquivo;
+      const pasta = linha.Pasta || linha.pasta;
+
+      if (!especificacao || !nomeDocumento || !pasta) {
+        console.warn(`❗ Linha ignorada por dados incompletos:`, linha);
+        continue;
+      }
+
+      if (!processosMap.has(especificacao)) {
+        processosMap.set(especificacao, []);
+      }
+
+      processosMap.get(especificacao).push({ nomeDocumento, pasta });
+    }
+
+    // Agora, para cada grupo, cria um processo com todos os documentos
+    for (const [especificacao, documentos] of processosMap.entries()) {
+      console.log(`\n🌀 Criando processo para: "${especificacao}" com ${documentos.length} documento(s)...`);
+
+      try {
+        const resultado = await criarProcesso(especificacao, documentos);
+        const protocolo = resultado.parametros.ProcedimentoFormatado.$value;
+
+        try {
+          await lancarAndamento(protocolo, `[ASF de ${especificacao} MIGRADO]`);
+        } catch (erro) {
+          console.error(`❌ Erro ao lançar andamento para "${especificacao}":`, erro);
+        }
+
+        console.log(`✅ Processo criado: ${protocolo}`);
+      } catch (erro) {
+        console.error(`❌ Erro ao criar processo para "${especificacao}":`, erro);
+      }
+    }
+
+    console.log('\n🏁 Todos os processos foram processados.');
+  } catch (erro) {
+    console.error('Erro durante o processamento:', erro);
+  }
+}
+
+processar();
+
+async function criarProcesso(especificacao, documentosInfo) {
+  const client = await createClient();
+
+  const documentos = [];
+
+  for (const { pasta, nomeDocumento } of documentosInfo) {
+    try {
+      const caminho = `pdfs/${pasta}/${nomeDocumento}`;
+      const conteudo = fs.readFileSync(caminho).toString('base64');
+
+      documentos.push({
+        Tipo: 'R',
+        IdSerie: process.env.SEI_ID_TIPO_DOCUMENTO,
+        Data: new Date().toLocaleDateString('pt-BR'),
+        NomeArquivo: nomeDocumento,
+        Conteudo: conteudo
+      });
+    } catch (erro) {
+      console.error(`❌ Erro ao ler documento "${nomeDocumento}" da pasta "${pasta}":`, erro.message);
+    }
+  }
+
+  const args = {
+    SiglaSistema: process.env.SEI_SIGLA_SISTEMA,
+    IdentificacaoServico: process.env.SEI_SERVICO,
+    IdUnidade: process.env.SEI_ID_UNIDADE,
+    Procedimento: {
+      IdTipoProcedimento: process.env.SEI_ID_TIPO_PROCESSO,
+      Especificacao: especificacao,
+      NivelAcesso: 1,
+      Interessados: {
+        Interessado: [{ Nome: especificacao }]
+      }
+    },
+    Documentos: {
+      Documento: documentos
+    }
+  };
+
+  console.log(`📦 Enviando ${documentos.length} documento(s) para o SEI...`);
+  const [res] = await client.gerarProcedimentoAsync(args);
+  return res;
+}
+
+async function lancarAndamento(protocolo, texto) {
+  const client = await createClient();
+  const args = {
+    SiglaSistema: process.env.SEI_SIGLA_SISTEMA,
+    IdentificacaoServico: process.env.SEI_SERVICO,
+    IdUnidade: process.env.SEI_ID_UNIDADE,
+    ProtocoloProcedimento: protocolo,
+    IdTarefa: 65,
+    Atributos: {
+      AtributoAndamento: [
+        {
+          Nome: 'DESCRICAO',
+          Valor: texto,
+          IdOrigem: 65
+        }
+      ]
+    }
+  };
+  const [res] = await client.lancarAndamentoAsync(args);
+  console.log('📝 Andamento lançado:', res.parametros.Descricao.$value);
+  return res;
+}
