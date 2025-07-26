@@ -3,7 +3,21 @@ const createClient = require('./seiClient');
 const fs = require('fs');
 const csv = require('csv-parser');
 
-const caminhoCSV = './teste.csv';
+const caminhoCSV = process.env.CAMINHO_CSV;
+const pastaArquivosExternos = process.env.PASTA_ARQUIVOS; // Pasta onde os arquivos que vão pro SEI estão armazenados
+const logFile = fs.createWriteStream(('app.log'), { flags: 'a' });
+const logError = fs.createWriteStream(('app.error'), { flags: 'a' });
+
+// Redefine o console.log para também escrever no arquivo
+console.log = function (message) {
+    logFile.write(`${new Date().toISOString()} - ${message}\n`); // Adiciona timestamp
+    process.stdout.write(`${message}\n`); // Mantém o comportamento original do console.log
+};
+// Redefine o console.error para também escrever no arquivo
+console.error = function (message) {
+    logError.write(`${new Date().toISOString()} - ${message}\n`); // Adiciona timestamp
+    process.stderr.write(`${message}\n`); // Mantém o comportamento original do console.log
+};
 
 async function lerCsv(caminho) {
   return new Promise((resolve, reject) => {
@@ -29,7 +43,7 @@ async function processar() {
       const pasta = linha.Pasta || linha.pasta;
 
       if (!especificacao || !nomeDocumento || !pasta) {
-        console.warn(`❗ Linha ignorada por dados incompletos:`, linha);
+        console.error(`❗ Linha ignorada por dados incompletos:`, linha);
         continue;
       }
 
@@ -75,7 +89,7 @@ async function criarProcesso(especificacao, documentosInfo) {
 
   for (const { pasta, nomeDocumento } of documentosInfo) {
     try {
-      const caminho = `pdfs/${pasta}/${nomeDocumento}`;
+      const caminho = `${pastaArquivosExternos}/${pasta}/${nomeDocumento}`;
       const conteudo = fs.readFileSync(caminho).toString('base64');
 
       documentos.push({

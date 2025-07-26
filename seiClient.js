@@ -8,7 +8,7 @@ async function createClient() {
   console.log('Cliente SOAP criado com sucesso');
   //client.addHttpHeader('Content-Type', 'text/xml;charset=UTF-8');
   //client.addHttpHeader('SOAPAction', '""');
-  
+  //console.erro('Erro ao criar cliente SOAP:', erro);
   return client;
 }
 
