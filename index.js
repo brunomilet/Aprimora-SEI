@@ -86,6 +86,7 @@ async function criarProcesso(especificacao, documentosInfo) {
   const client = await createClient();
 
   const documentos = [];
+  const docErro = false;
 
   for (const { pasta, nomeDocumento } of documentosInfo) {
     try {
@@ -101,6 +102,8 @@ async function criarProcesso(especificacao, documentosInfo) {
       });
     } catch (erro) {
       console.error(`❌ Erro ao ler documento "${nomeDocumento}" da pasta "${pasta}":`, erro.message);
+      docErro = true;
+      break; // Interrompe a leitura de documentos se houver erro
     }
   }
 
@@ -120,10 +123,20 @@ async function criarProcesso(especificacao, documentosInfo) {
       Documento: documentos
     }
   };
-
-  console.log(`📦 Enviando ${documentos.length} documento(s) para o SEI...`);
-  const [res] = await client.gerarProcedimentoAsync(args);
-  return res;
+  if (docErro) {
+    console.error(`❗ Não foi possível criar o ASF para "${especificacao}" devido a erros na leitura de documentos.`);
+    return;
+  } else if (documentos.length === 0) {
+    console.error(`❗ Não foram encontrados documentos para "${especificacao}". Processo não será criado.`);
+    return;
+  } else if (documentos.length > 200) {
+    console.error(`❗ O número de documentos para "${especificacao}" excede o limite de 200. Processo não será criado.`);
+    return;
+  } else {
+    console.log(`📦 Enviando ${documentos.length} documento(s) para o SEI...`);
+    const [res] = await client.gerarProcedimentoAsync(args);
+    return res;
+  }
 }
 
 async function lancarAndamento(protocolo, texto) {
