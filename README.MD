@@ -25,3 +25,7 @@ Então esse programa simples em Node.js utiliza a API oficial do SEI para criar 
  - PASTA_ARQUIVOS=[caminho completo dos arquivos]
 #Caminho Completo do o arquivo CSV para o SEI
  - CAMINHO_CSV=./teste.csv
+#Caminho Completo do arquivo de log
+ - CAMINHO_LOG=[caminho completo do log.app]
+#Caminho Completo do arquivo de log de erros
+ - CAMINHO_LOG_ERROS=[caminho completo do log.err]

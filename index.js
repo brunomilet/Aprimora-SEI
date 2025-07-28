@@ -5,18 +5,22 @@ const csv = require('csv-parser');
 
 const caminhoCSV = process.env.CAMINHO_CSV;
 const pastaArquivosExternos = process.env.PASTA_ARQUIVOS; // Pasta onde os arquivos que vão pro SEI estão armazenados
-const logFile = fs.createWriteStream(('app.log'), { flags: 'a' });
-const logError = fs.createWriteStream(('app.error'), { flags: 'a' });
+const logFile = fs.createWriteStream((process.env.CAMINHO_LOG), { flags: 'a' });
+const logError = fs.createWriteStream((process.env.CAMINHO_LOG_ERROS), { flags: 'a' });
+
+const date = new Date();
+date.setHours(date.getHours() - 3); // Horário de Brasília (UTC-3)
 
 // Redefine o console.log para também escrever no arquivo
 console.log = function (message) {
-    logFile.write(`${new Date().toISOString()} - ${message}\n`); // Adiciona timestamp
+    logFile.write(`${date.toISOString()} - ${message}\n`); // Adiciona timestamp
     process.stdout.write(`${message}\n`); // Mantém o comportamento original do console.log
 };
 // Redefine o console.error para também escrever no arquivo
-console.error = function (message) {
-    logError.write(`${new Date().toISOString()} - ${message}\n`); // Adiciona timestamp
-    process.stderr.write(`${message}\n`); // Mantém o comportamento original do console.log
+console.error = function (message) {  //log de erros escreve nos 2 arquivos
+  logError.write(`${date.toISOString()} - ${message}\n`); // Adiciona timestamp
+  logFile.write(`${date.toISOString()} - ${message}\n`); // Adiciona timestamp
+  process.stderr.write(`${message}\n`); // Mantém o comportamento original do console.log
 };
 
 async function lerCsv(caminho) {
@@ -56,27 +60,27 @@ async function processar() {
 
     // Agora, para cada grupo, cria um processo com todos os documentos
     for (const [especificacao, documentos] of processosMap.entries()) {
-      console.log(`\n🌀 Criando processo para: "${especificacao}" com ${documentos.length} documento(s)...`);
+      console.log(`🌀 Processo: "${especificacao}" com ${documentos.length} documento(s)...`);
 
       try {
         const resultado = await criarProcesso(especificacao, documentos);
         const protocolo = resultado.parametros.ProcedimentoFormatado.$value;
 
         try {
-          await lancarAndamento(protocolo, `[ASF de ${especificacao} MIGRADO]`);
+          await lancarAndamento(protocolo, `Migração do ASF de ${especificacao} concluída.`);
         } catch (erro) {
-          console.error(`❌ Erro ao lançar andamento para "${especificacao}":`, erro);
+          console.error(`❌ Erro ao lançar andamento para "${especificacao}".`);
         }
 
         console.log(`✅ Processo criado: ${protocolo}`);
       } catch (erro) {
-        console.error(`❌ Erro ao criar processo para "${especificacao}":`, erro);
+        console.error(`❌ Erro ao criar processo para "${especificacao}".`);
       }
     }
 
-    console.log('\n🏁 Todos os processos foram processados.');
+    console.log('🏁 Todos os processos foram processados.');
   } catch (erro) {
-    console.error('Erro durante o processamento:', erro);
+    console.error('Erro durante o processamento.');
   }
 }
 
@@ -101,7 +105,7 @@ async function criarProcesso(especificacao, documentosInfo) {
         Conteudo: conteudo
       });
     } catch (erro) {
-      console.error(`❌ Erro ao ler documento "${nomeDocumento}" da pasta "${pasta}":`, erro.message);
+      console.error(`❌ Erro ao ler documento "${nomeDocumento}" da pasta "${pasta}".`);
       docErro = true;
       break; // Interrompe a leitura de documentos se houver erro
     }
