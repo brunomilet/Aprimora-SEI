@@ -1,7 +1,7 @@
 {
   "name": "soap-sei",
   "version": "1.0.0",
-  "description": "",
+  "description": "Hoje o projeto visa atender uma demanda prática do TRF2 que é migrar uma série de documentos do servidor de arquivos para o SEI. Então esse programa simples em Node.js utiliza a API oficial do SEI para criar processos já com documentos externos (PDF) na árvore e no final coloca uma atualização no andamento do processo para marcar que a migração daquele processo foi finalizada.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -14,5 +14,13 @@
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.1",
     "soap": "^1.2.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brunomilet/Aprimora-SEI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brunomilet/Aprimora-SEI/issues"
+  },
+  "homepage": "https://github.com/brunomilet/Aprimora-SEI#readme"
 }
