@@ -27,7 +27,13 @@ async function lerCsv(caminho) {
   return new Promise((resolve, reject) => {
     const resultados = [];
     fs.createReadStream(caminho)
-      .pipe(csv({ separator: ';' }))
+      .pipe(csv({
+        separator: ';',
+        mapHeaders: ({ header }) => {
+          // Remove BOM invisível do primeiro header, se presente
+          return header.replace(/^\uFEFF/, '');
+        }
+      }))
       .on('data', (row) => resultados.push(row))
       .on('end', () => resolve(resultados))
       .on('error', reject);
@@ -37,7 +43,7 @@ async function lerCsv(caminho) {
 async function processar() {
   try {
     const linhas = await lerCsv(caminhoCSV);
-
+  
     // Agrupar linhas por especificação (Nome)
     const processosMap = new Map();
 
@@ -47,7 +53,7 @@ async function processar() {
       const pasta = linha.Pasta || linha.pasta;
 
       if (!especificacao || !nomeDocumento || !pasta) {
-        console.error(`❗ Linha ignorada por dados incompletos:`, linha);
+        console.error(`❗ Linha ignorada por dados incompletos: ${linha}`);
         continue;
       }
 
@@ -61,7 +67,7 @@ async function processar() {
     // Agora, para cada grupo, cria um processo com todos os documentos
     for (const [especificacao, documentos] of processosMap.entries()) {
       console.log(`🌀 Processo: "${especificacao}" com ${documentos.length} documento(s)...`);
-
+    
       try {
         const resultado = await criarProcesso(especificacao, documentos);
         const protocolo = resultado.parametros.ProcedimentoFormatado.$value;
@@ -72,7 +78,7 @@ async function processar() {
           console.error(`❌ Erro ao lançar andamento para "${especificacao}".`);
         }
 
-        console.log(`✅ Processo criado: ${protocolo}`);
+        console.log(`✅ Processo criado: "${protocolo}"`);
       } catch (erro) {
         console.error(`❌ Erro ao criar processo para "${especificacao}".`);
       }
@@ -162,6 +168,6 @@ async function lancarAndamento(protocolo, texto) {
     }
   };
   const [res] = await client.lancarAndamentoAsync(args);
-  console.log('📝 Andamento lançado:', res.parametros.Descricao.$value);
+  console.log(`📝 Andamento lançado: ${res.parametros.Descricao.$value}`);
   return res;
 }
