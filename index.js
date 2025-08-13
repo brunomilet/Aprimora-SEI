@@ -80,6 +80,7 @@ async function processar() {
 
         console.log(`✅ Processo criado: "${protocolo}"`);
       } catch (erro) {
+        console.error(erro);
         console.error(`❌ Erro ao criar processo para "${especificacao}".`);
       }
     }
