@@ -78,7 +78,8 @@ async function processar() {
 
         console.log(`✅ Processo criado: "${protocolo}"`);
       } catch (erro) {
-        console.error(`❌ Erro ao criar processo "${pasta}". Erro: ${erro.message}`);
+        //console.error(`❌ Erro ao criar processo "${pasta}". Erro: ${erro.message}`);
+        //console.error(`❌ Erro ao criar processo "${pasta}".`);
       }
     }
 
@@ -119,7 +120,7 @@ async function criarProcesso(pasta, documentosInfo) {
       docErro = true;
       break; // Interrompe a leitura de documentos se houver erro
     }
-    console.log(`📄 Documento preparado: "${nomeDocumento}"`);
+    //console.log(`📄 Documento preparado: "${nomeDocumento}"`);
   }
 
   const args = {
