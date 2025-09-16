@@ -53,7 +53,6 @@ async function processar() {
 
       if (!nomeDocumento || !pasta) {
         console.error(`❗ Linha ignorada por dados incompletos: ${linha}`);
-        continue;
       }
 
       if (!processosMap.has(pasta)) {
@@ -95,25 +94,32 @@ async function criarProcesso(pasta, documentosInfo) {
   const client = await createClient();
 
   const documentos = [];
-  const docErro = false;
+  docErro = false;
 
   for (const { pasta, nomeDocumento } of documentosInfo) {
     try {
-      const caminho = `${pastaArquivosExternos}/${pasta}/${nomeDocumento}`;
-      const conteudo = fs.readFileSync(caminho).toString('base64');
+      if (nomeDocumento.length > 50)  {
+        throw new Error(`Nome do documento excede 50 caracteres: "${nomeDocumento}"`);
+      } else {
+        const caminho = `${pastaArquivosExternos}/${pasta}/${nomeDocumento}`;
+        const conteudo = fs.readFileSync(caminho).toString('base64');
 
-      documentos.push({
-        Tipo: 'R',
-        IdSerie: process.env.SEI_ID_TIPO_DOCUMENTO,
-        Data: new Date().toLocaleDateString('pt-BR'),
-        NomeArquivo: nomeDocumento,
-        Conteudo: conteudo
-      });
+        documentos.push({
+          Tipo: 'R',
+          IdSerie: process.env.SEI_ID_TIPO_DOCUMENTO,
+          Data: new Date().toLocaleDateString('pt-BR'),
+          NomeArquivo: nomeDocumento,
+          NomeArvore: nomeDocumento,
+          Observacao: nomeDocumento,
+          Conteudo: conteudo
+        });
+      }
     } catch (erro) {
-      console.error(`❌ Erro ao ler documento "${nomeDocumento}" da pasta "${pasta}".`);
+      console.error(erro.message || erro);
       docErro = true;
       break; // Interrompe a leitura de documentos se houver erro
     }
+    console.log(`📄 Documento preparado: "${nomeDocumento}"`);
   }
 
   const args = {
