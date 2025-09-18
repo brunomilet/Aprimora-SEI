@@ -78,7 +78,7 @@ async function processar() {
 
         console.log(`✅ Processo criado: "${protocolo}"`);
       } catch (erro) {
-        //console.error(`❌ Erro ao criar processo "${pasta}". Erro: ${erro.message}`);
+        console.error(`❌ Erro ao criar processo "${pasta}". Erro: ${erro.message}`);
         //console.error(`❌ Erro ao criar processo "${pasta}".`);
       }
     }
@@ -99,22 +99,23 @@ async function criarProcesso(pasta, documentosInfo) {
 
   for (const { pasta, nomeDocumento } of documentosInfo) {
     try {
-      if (nomeDocumento.length > 50)  {
-        throw new Error(`Nome do documento excede 50 caracteres: "${nomeDocumento}"`);
-      } else {
+      //if (nomeDocumento.length > 50)  {
+      //  throw new Error(`Nome do documento excede 50 caracteres: "${nomeDocumento}"`);
+      //} else {
         const caminho = `${pastaArquivosExternos}/${pasta}/${nomeDocumento}`;
         const conteudo = fs.readFileSync(caminho).toString('base64');
+        const nomeTruncado = nomeDocumento.length > 50 ? nomeDocumento.slice(0, 47) + "..." : nomeDocumento;
 
         documentos.push({
           Tipo: 'R',
           IdSerie: process.env.SEI_ID_TIPO_DOCUMENTO,
           Data: new Date().toLocaleDateString('pt-BR'),
           NomeArquivo: nomeDocumento,
-          NomeArvore: nomeDocumento,
+          NomeArvore: nomeTruncado,
           Observacao: nomeDocumento,
           Conteudo: conteudo
         });
-      }
+      //}
     } catch (erro) {
       console.error(erro.message || erro);
       docErro = true;
